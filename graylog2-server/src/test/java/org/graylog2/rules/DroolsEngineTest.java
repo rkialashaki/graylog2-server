@@ -20,7 +20,6 @@ import org.graylog2.plugin.Message;
 import org.graylog2.plugin.Tools;
 import org.junit.Test;
 
-import java.net.URI;
 import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
@@ -31,18 +30,18 @@ public class DroolsEngineTest {
 
     @Test
     public void runWithoutRules() {
-        final DroolsEngine engine = new DroolsEngine(Collections.<URI>emptySet());
+        final DroolsEngine engine = new DroolsEngine(Collections.emptySet());
 
         final int rulesFired = engine.evaluateInSharedSession(new Message("test message", "test", Tools.nowUTC()));
 
-        assertEquals("No rules should have fired", rulesFired, 0);
+        assertEquals("No rules should have fired", 0, rulesFired);
 
         engine.stop();
     }
 
     @Test
     public void addedRuleIsVisibleInSession() {
-        final DroolsEngine engine = new DroolsEngine(Collections.<URI>emptySet());
+        final DroolsEngine engine = new DroolsEngine(Collections.emptySet());
 
         String rule1 =
                 "declare Message\n" +
@@ -78,14 +77,14 @@ public class DroolsEngineTest {
         final int fired = engine.evaluateInSharedSession(msg);
 
         assertTrue("msg is filtered out", msg.getFilterOut());
-        assertEquals("both rules should have fired", fired, 2);
+        assertEquals("both rules should have fired", 2, fired);
 
         engine.stop();
     }
 
     @Test
     public void incorrectRuleIsNotApplied() {
-        final DroolsEngine engine = new DroolsEngine(Collections.<URI>emptySet());
+        final DroolsEngine engine = new DroolsEngine(Collections.emptySet());
 
         String invalidRule = "rule \"this will not compile\"\n" +
                 "when\n" +

@@ -21,7 +21,6 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.github.joschi.jadconfig.util.Size;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -246,7 +245,7 @@ public class KafkaJournal extends AbstractIdleService implements Journal {
         committedReadOffsetFile = new File(journalDirectory, "graylog2-committed-read-offset");
         try {
             if (!committedReadOffsetFile.createNewFile()) {
-                final String line = Files.readFirstLine(committedReadOffsetFile, StandardCharsets.UTF_8);
+                final String line = Files.asCharSource(committedReadOffsetFile, StandardCharsets.UTF_8).readFirstLine();
                 // the file contains the last offset graylog2 has successfully processed.
                 // thus the nextReadOffset is one beyond that number
                 if (line != null) {

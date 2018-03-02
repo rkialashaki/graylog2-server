@@ -18,7 +18,6 @@ package org.graylog2.rules;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import com.google.common.io.Files;
 import org.apache.commons.io.FilenameUtils;
 import org.drools.compiler.kie.builder.impl.InternalKieModule;
 import org.graylog2.plugin.Message;
@@ -39,12 +38,14 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -98,7 +99,9 @@ public class DroolsEngine implements RulesEngine {
     public synchronized boolean addRulesFromFile(String rulesFile) {
         LOG.debug("Adding drools rules from file {}", rulesFile);
         try {
-            final String rulesSource = Files.toString(new File(rulesFile), StandardCharsets.UTF_8);
+            final Path path = Paths.get(rulesFile);
+            final byte[] bytes = Files.readAllBytes(path);
+            final String rulesSource = new String(bytes, StandardCharsets.UTF_8);
             return addRule(rulesSource);
         } catch (IOException e) {
             LOG.warn("Could not read drools source file. Not loading rules: {}", e.getMessage());
