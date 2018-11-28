@@ -32,17 +32,16 @@ import org.graylog2.bindings.providers.ClusterEventBusProvider;
 import org.graylog2.bindings.providers.DefaultSecurityManagerProvider;
 import org.graylog2.bindings.providers.DefaultStreamProvider;
 import org.graylog2.bindings.providers.MongoConnectionProvider;
-import org.graylog2.bindings.providers.RulesEngineProvider;
 import org.graylog2.bindings.providers.SystemJobFactoryProvider;
 import org.graylog2.bindings.providers.SystemJobManagerProvider;
 import org.graylog2.bundles.BundleService;
 import org.graylog2.cluster.ClusterConfigServiceImpl;
+import org.graylog2.rest.GenericErrorCsvWriter;
+import org.graylog2.users.UserPermissionsCleanupListener;
 import org.graylog2.dashboards.widgets.WidgetCacheTime;
 import org.graylog2.dashboards.widgets.WidgetEventsListener;
 import org.graylog2.database.MongoConnection;
 import org.graylog2.events.ClusterEventBus;
-import org.graylog2.filters.FilterService;
-import org.graylog2.filters.FilterServiceImpl;
 import org.graylog2.grok.GrokModule;
 import org.graylog2.grok.GrokPatternRegistry;
 import org.graylog2.indexer.SetIndexReadOnlyJob;
@@ -58,7 +57,6 @@ import org.graylog2.inputs.InputEventListener;
 import org.graylog2.inputs.InputStateListener;
 import org.graylog2.inputs.PersistedInputsImpl;
 import org.graylog2.lookup.LookupModule;
-import org.graylog2.plugin.RulesEngine;
 import org.graylog2.plugin.cluster.ClusterConfigService;
 import org.graylog2.plugin.inject.Graylog2Module;
 import org.graylog2.plugin.streams.DefaultStream;
@@ -81,6 +79,7 @@ import org.graylog2.shared.journal.NoopJournalModule;
 import org.graylog2.shared.metrics.jersey2.MetricsDynamicBinding;
 import org.graylog2.shared.security.RestrictToMasterFeature;
 import org.graylog2.shared.system.activities.ActivityWriter;
+import org.graylog2.streams.DefaultStreamChangeHandler;
 import org.graylog2.streams.StreamRouter;
 import org.graylog2.streams.StreamRouterEngine;
 import org.graylog2.system.activities.SystemMessageActivityWriter;
@@ -146,6 +145,7 @@ public class ServerBindings extends Graylog2Module {
 
         install(new FactoryModuleBuilder().build(ProcessBufferProcessor.Factory.class));
         bind(Stream.class).annotatedWith(DefaultStream.class).toProvider(DefaultStreamProvider.class);
+        bind(DefaultStreamChangeHandler.class).asEagerSingleton();
     }
 
     private void bindSingletons() {
@@ -159,7 +159,6 @@ public class ServerBindings extends Graylog2Module {
         }
 
         bind(SystemJobManager.class).toProvider(SystemJobManagerProvider.class);
-        bind(RulesEngine.class).toProvider(RulesEngineProvider.class);
         bind(LdapConnector.class).in(Scopes.SINGLETON);
         bind(LdapUserAuthenticator.class).in(Scopes.SINGLETON);
         bind(DefaultSecurityManager.class).toProvider(DefaultSecurityManagerProvider.class).asEagerSingleton();
@@ -183,7 +182,6 @@ public class ServerBindings extends Graylog2Module {
         bind(StreamRouter.class);
         install(new FactoryModuleBuilder().implement(StreamRouterEngine.class, StreamRouterEngine.class).build(
                 StreamRouterEngine.Factory.class));
-        bind(FilterService.class).to(FilterServiceImpl.class).in(Scopes.SINGLETON);
         bind(ActivityWriter.class).to(SystemMessageActivityWriter.class);
         bind(PersistedInputs.class).to(PersistedInputsImpl.class);
 
@@ -206,6 +204,7 @@ public class ServerBindings extends Graylog2Module {
 
     private void bindAdditionalJerseyComponents() {
         jerseyAdditionalComponentsBinder().addBinding().toInstance(ScrollChunkWriter.class);
+        jerseyAdditionalComponentsBinder().addBinding().toInstance(GenericErrorCsvWriter.class);
     }
 
     private void bindEventBusListeners() {

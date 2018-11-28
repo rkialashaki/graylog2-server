@@ -16,7 +16,7 @@
  */
 package org.graylog2.streams;
 
-import com.google.common.collect.Sets;
+import com.google.common.collect.ImmutableSet;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
@@ -37,8 +37,8 @@ import org.mongojack.JacksonDBCollection;
 import org.mongojack.WriteResult;
 
 import javax.inject.Inject;
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -72,14 +72,17 @@ public class OutputServiceImpl implements OutputService {
 
     @Override
     public Set<Output> loadAll() {
-        return toAbstractSetType(coll.find().toArray());
+        try (org.mongojack.DBCursor<OutputImpl> outputs = coll.find()) {
+            return ImmutableSet.copyOf((Iterable<OutputImpl>) outputs);
+        }
     }
 
-    private Set<Output> toAbstractSetType(List<OutputImpl> outputs) {
-        final Set<Output> result = Sets.newHashSet();
-        result.addAll(outputs);
-
-        return result;
+    @Override
+    public Set<Output> loadByIds(Collection<String> ids) {
+        final DBQuery.Query query = DBQuery.in(OutputImpl.FIELD_ID, ids);
+        try (org.mongojack.DBCursor<OutputImpl> dbCursor = coll.find(query)) {
+            return ImmutableSet.copyOf((Iterable<? extends Output>) dbCursor);
+        }
     }
 
     @Override
@@ -109,7 +112,7 @@ public class OutputServiceImpl implements OutputService {
         for (Map.Entry<String, Object> fields : deltas.entrySet())
             update = update.set(fields.getKey(), fields.getValue());
 
-        return coll.findAndModify(DBQuery.is("_id", id), update);
+        return coll.findAndModify(DBQuery.is(OutputImpl.FIELD_ID, id), null, null, false, update, true, false);
     }
 
     @Override
@@ -119,15 +122,16 @@ public class OutputServiceImpl implements OutputService {
 
     @Override
     public Map<String, Long> countByType() {
-        final DBCursor outputTypes = dbCollection.find(null, new BasicDBObject(OutputImpl.FIELD_TYPE, 1));
+        final Map<String, Long> outputsCountByType = new HashMap<>();
+        try (DBCursor outputTypes = dbCollection.find(null, new BasicDBObject(OutputImpl.FIELD_TYPE, 1))) {
 
-        final Map<String, Long> outputsCountByType = new HashMap<>(outputTypes.count());
-        for (DBObject outputType : outputTypes) {
-            final String type = (String) outputType.get(OutputImpl.FIELD_TYPE);
-            if (type != null) {
-                final Long oldValue = outputsCountByType.get(type);
-                final Long newValue = (oldValue == null) ? 1 : oldValue + 1;
-                outputsCountByType.put(type, newValue);
+            for (DBObject outputType : outputTypes) {
+                final String type = (String) outputType.get(OutputImpl.FIELD_TYPE);
+                if (type != null) {
+                    final Long oldValue = outputsCountByType.get(type);
+                    final Long newValue = (oldValue == null) ? 1 : oldValue + 1;
+                    outputsCountByType.put(type, newValue);
+                }
             }
         }
 

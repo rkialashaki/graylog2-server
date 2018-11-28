@@ -61,6 +61,9 @@ const Routes = {
     CONTENTPACKS: {
       LIST: '/system/contentpacks',
       EXPORT: '/system/contentpacks/export',
+      CREATE: '/system/contentpacks/create',
+      edit: (contentPackId, contentPackRev) => { return `/system/contentpacks/${contentPackId}/${contentPackRev}/edit`; },
+      show: contentPackId => `/system/contentpacks/${contentPackId}`,
     },
     GROKPATTERNS: '/system/grokpatterns',
     INDICES: {
@@ -129,6 +132,16 @@ const Routes = {
       SIMULATOR: '/system/pipelines/simulate',
     },
     ENTERPRISE: '/system/enterprise',
+    SIDECARS: {
+      OVERVIEW: '/system/sidecars',
+      STATUS: sidecarId => `/system/sidecars/${sidecarId}/status`,
+      ADMINISTRATION: '/system/sidecars/administration',
+      CONFIGURATION: '/system/sidecars/configuration',
+      NEW_CONFIGURATION: '/system/sidecars/configuration/new',
+      EDIT_CONFIGURATION: configurationId => `/system/sidecars/configuration/edit/${configurationId}`,
+      NEW_COLLECTOR: '/system/sidecars/collector/new',
+      EDIT_COLLECTOR: collectorId => `/system/sidecars/collector/edit/${collectorId}`,
+    },
   },
   search_with_query: (query, rangeType, timeRange) => {
     const route = new URI(Routes.SEARCH);
@@ -167,10 +180,13 @@ const Routes = {
   stream_search: (streamId, query, timeRange, resolution) => {
     return Routes._common_search_url(`${Routes.STREAMS}/${streamId}/search`, query, timeRange, resolution);
   },
-  legacy_stream_search: streamId => `/streams/${streamId}/messages`,
+  stream_alerts: streamId => `/streams/${streamId}/alerts`,
 
+  legacy_stream_search: streamId => `/streams/${streamId}/messages`,
   show_alert: alertId => `${Routes.ALERTS.LIST}/${alertId}`,
   show_alert_condition: (streamId, conditionId) => `${Routes.ALERTS.CONDITIONS}/${streamId}/${conditionId}`,
+  new_alert_condition_for_stream: streamId => `${Routes.ALERTS.NEW_CONDITION}?stream_id=${streamId}`,
+  new_alert_notification_for_stream: streamId => `${Routes.ALERTS.NEW_NOTIFICATION}?stream_id=${streamId}`,
 
   dashboard_show: dashboardId => `/dashboards/${dashboardId}`,
 

@@ -26,7 +26,7 @@
     <parent>
         <groupId>org.graylog</groupId>
         <artifactId>graylog-parent</artifactId>
-        <version>3.0.0-alpha.2-SNAPSHOT</version>
+        <version>3.0.0-alpha.5-SNAPSHOT</version>
     </parent>
 
     <groupId>org.graylog.plugins</groupId>
@@ -43,8 +43,7 @@
 
         <!-- Plugin versions -->
         <jdeb.version>1.6</jdeb.version>
-        <rpm-maven.version>2.1.5</rpm-maven.version>
-        <license-maven.version>2.11</license-maven.version>
+        <rpm-maven.version>2.2.0</rpm-maven.version>
     </properties>
 
     <dependencyManagement>
@@ -67,17 +66,17 @@
             <artifactId>graylog2-server</artifactId>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>com.google.auto.value</groupId>
+            <artifactId>auto-value</artifactId>
+            <version>${auto-value.version}</version>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
     <build>
         <pluginManagement>
             <plugins>
-                <plugin>
-                    <groupId>com.mycila</groupId>
-                    <artifactId>license-maven-plugin</artifactId>
-                    <version>${license-maven.version}</version>
-                </plugin>
-
                 <plugin>
                     <artifactId>jdeb</artifactId>
                     <groupId>org.vafer</groupId>
@@ -102,6 +101,7 @@
                             <directory>${basedir}</directory>
                             <includes>
                                 <include>build/**/*</include>
+                                <include>node_modules/**/*</include>
                             </includes>
                             <followSymlinks>false</followSymlinks>
                         </fileset>

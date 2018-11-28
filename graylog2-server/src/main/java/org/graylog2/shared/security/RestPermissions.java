@@ -32,21 +32,21 @@ public class RestPermissions implements PluginPermissions {
      */
     public static final String AUTHENTICATION_READ = "authentication:read";
     public static final String AUTHENTICATION_EDIT = "authentication:edit";
-    public static final String BLACKLISTENTRY_CREATE = "blacklistentry:create";
-    public static final String BLACKLISTENTRY_DELETE = "blacklistentry:delete";
-    public static final String BLACKLISTENTRY_EDIT = "blacklistentry:edit";
-    public static final String BLACKLISTENTRY_READ = "blacklistentry:read";
     public static final String BUFFERS_READ = "buffers:read";
-    public static final String BUNDLE_CREATE = "bundle:create";
-    public static final String BUNDLE_DELETE = "bundle:delete";
     public static final String BUNDLE_EXPORT = "bundle:export";
     public static final String BUNDLE_IMPORT = "bundle:import";
-    public static final String BUNDLE_READ = "bundle:read";
     public static final String BUNDLE_UPDATE = "bundle:update";
+    public static final String CATALOG_LIST = "catalog:list";
+    public static final String CATALOG_RESOLVE = "catalog:resolve";
     public static final String CLUSTER_CONFIG_ENTRY_CREATE = "clusterconfigentry:create";
     public static final String CLUSTER_CONFIG_ENTRY_DELETE = "clusterconfigentry:delete";
     public static final String CLUSTER_CONFIG_ENTRY_EDIT = "clusterconfigentry:edit";
     public static final String CLUSTER_CONFIG_ENTRY_READ = "clusterconfigentry:read";
+    public static final String CONTENT_PACK_CREATE = "contentpack:create";
+    public static final String CONTENT_PACK_DELETE = "contentpack:delete";
+    public static final String CONTENT_PACK_READ = "contentpack:read";
+    public static final String CONTENT_PACK_INSTALL = "contentpack:install";
+    public static final String CONTENT_PACK_UNINSTALL = "contentpack:uninstall";
     public static final String DASHBOARDS_CREATE = "dashboards:create";
     public static final String DASHBOARDS_EDIT = "dashboards:edit";
     public static final String DASHBOARDS_READ = "dashboards:read";
@@ -87,6 +87,7 @@ public class RestPermissions implements PluginPermissions {
     public static final String LOGGERS_EDITSUBSYSTEM = "loggers:editsubsystem";
     public static final String LOGGERS_READ = "loggers:read";
     public static final String LOGGERS_READSUBSYSTEM = "loggers:readsubsystem";
+    public static final String LOGGERSMESSAGES_READ = "loggersmessages:read";
     public static final String MESSAGECOUNT_READ = "messagecount:read";
     public static final String MESSAGES_ANALYZE = "messages:analyze";
     public static final String MESSAGES_READ = "messages:read";
@@ -140,17 +141,15 @@ public class RestPermissions implements PluginPermissions {
     protected static final ImmutableSet<Permission> PERMISSIONS = ImmutableSet.<Permission>builder()
         .add(create(AUTHENTICATION_EDIT, ""))
         .add(create(AUTHENTICATION_READ, ""))
-        .add(create(BLACKLISTENTRY_CREATE, ""))
-        .add(create(BLACKLISTENTRY_DELETE, ""))
-        .add(create(BLACKLISTENTRY_EDIT, ""))
-        .add(create(BLACKLISTENTRY_READ, ""))
         .add(create(BUFFERS_READ, ""))
-        .add(create(BUNDLE_CREATE, ""))
-        .add(create(BUNDLE_DELETE, ""))
+        .add(create(CONTENT_PACK_CREATE, ""))
+        .add(create(CONTENT_PACK_DELETE, ""))
         .add(create(BUNDLE_EXPORT, ""))
         .add(create(BUNDLE_IMPORT, ""))
-        .add(create(BUNDLE_READ, ""))
+        .add(create(CONTENT_PACK_READ, ""))
         .add(create(BUNDLE_UPDATE, ""))
+        .add(create(CATALOG_LIST, ""))
+        .add(create(CATALOG_RESOLVE, ""))
         .add(create(CLUSTER_CONFIG_ENTRY_CREATE, ""))
         .add(create(CLUSTER_CONFIG_ENTRY_DELETE, ""))
         .add(create(CLUSTER_CONFIG_ENTRY_EDIT, ""))
@@ -195,6 +194,7 @@ public class RestPermissions implements PluginPermissions {
         .add(create(LOGGERS_EDITSUBSYSTEM, ""))
         .add(create(LOGGERS_READ, ""))
         .add(create(LOGGERS_READSUBSYSTEM, ""))
+        .add(create(LOGGERSMESSAGES_READ, ""))
         .add(create(MESSAGECOUNT_READ, ""))
         .add(create(MESSAGES_ANALYZE, ""))
         .add(create(MESSAGES_READ, ""))
@@ -247,7 +247,7 @@ public class RestPermissions implements PluginPermissions {
         .build();
 
     // Standard set of PERMISSIONS of readers.
-    protected static final Set<String> READER_BASE_PERMISSION_SELECTION = ImmutableSet.<String>builder().add(
+    protected static final ImmutableSet<String> READER_BASE_PERMISSION_SELECTION = ImmutableSet.<String>builder().add(
         BUFFERS_READ,
         CLUSTER_CONFIG_ENTRY_READ,
         DECORATORS_READ,

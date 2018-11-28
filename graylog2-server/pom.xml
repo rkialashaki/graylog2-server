@@ -22,7 +22,7 @@
     <parent>
         <groupId>org.graylog</groupId>
         <artifactId>graylog-project-parent</artifactId>
-        <version>3.0.0-alpha.2-SNAPSHOT</version>
+        <version>3.0.0-alpha.5-SNAPSHOT</version>
         <relativePath>../graylog-project-parent</relativePath>
     </parent>
 
@@ -65,7 +65,7 @@
 
         <it.es.httpPort>19200</it.es.httpPort>
         <it.es.transportPort>19300</it.es.transportPort>
-        <it.es.version>5.6.4</it.es.version>
+        <it.es.version>5.6.12</it.es.version>
         <it.es.instanceCount>1</it.es.instanceCount>
         <it.es.clusterName>test</it.es.clusterName>
         <it.es.await>false</it.es.await>
@@ -177,6 +177,10 @@
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-yaml</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-csv</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
@@ -278,14 +282,6 @@
             <artifactId>jest</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>org.kie</groupId>
-            <artifactId>kie-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.drools</groupId>
-            <artifactId>drools-compiler</artifactId>
-        </dependency>
 
         <dependency>
             <groupId>com.lmax</groupId>
@@ -308,8 +304,8 @@
         </dependency>
 
         <dependency>
-            <groupId>org.graylog2.repackaged</groupId>
-            <artifactId>grok</artifactId>
+            <groupId>io.krakens</groupId>
+            <artifactId>java-grok</artifactId>
         </dependency>
 
         <dependency>
@@ -321,7 +317,7 @@
             <artifactId>swagger-annotations</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.hibernate</groupId>
+            <groupId>org.hibernate.validator</groupId>
             <artifactId>hibernate-validator</artifactId>
         </dependency>
 
@@ -354,6 +350,10 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-joda-time</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.revinate</groupId>
+            <artifactId>assertj-json</artifactId>
         </dependency>
         <dependency>
             <groupId>com.lordofthejars</groupId>
@@ -420,7 +420,15 @@
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>
+            <artifactId>netty-codec-dns</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
             <artifactId>netty-codec-http</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-resolver-dns</artifactId>
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>
@@ -478,6 +486,10 @@
             <artifactId>java-semver</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.graylog.repackaged</groupId>
+            <artifactId>semver4j</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
         </dependency>
@@ -504,6 +516,11 @@
         <dependency>
             <groupId>com.squareup</groupId>
             <artifactId>javapoet</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.freemarker</groupId>
+            <artifactId>freemarker</artifactId>
+            <version>${freemarker.version}</version>
         </dependency>
 
         <dependency>
@@ -532,8 +549,8 @@
             <artifactId>jcip-annotations</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.github.spotbugs</groupId>
-            <artifactId>spotbugs-annotations</artifactId>
+            <groupId>com.google.auto.value</groupId>
+            <artifactId>auto-value-annotations</artifactId>
         </dependency>
         <dependency>
             <groupId>com.google.auto.value</groupId>
@@ -563,6 +580,21 @@
         <dependency>
             <groupId>io.pkts</groupId>
             <artifactId>pkts-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.jersey.test-framework</groupId>
+            <artifactId>jersey-test-framework-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.jersey.test-framework.providers</groupId>
+            <artifactId>jersey-test-framework-provider-grizzly2</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.jersey.test-framework.providers</groupId>
+            <artifactId>jersey-test-framework-provider-inmemory</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -858,7 +890,7 @@
                 </property>
             </activation>
             <properties>
-                <it.es.version>5.6.4</it.es.version>
+                <it.es.version>5.6.12</it.es.version>
             </properties>
             <build>
                 <plugins>

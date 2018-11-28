@@ -34,18 +34,24 @@ const SelectPopover = createReactClass({
      * and must return a React node that will be displayed on screen.
      */
     itemFormatter: PropTypes.func,
-    /** Indicates which is the selected item. This should be the same string that appears in the `items` list. */
-    selectedItem: PropTypes.string,
+    /** Indicates whether the component will allow multiple selected items or not. */
+    multiple: PropTypes.bool,
+    /** Indicates which items are selected. This should be the same string that appears in the `items` list. */
+    selectedItems: PropTypes.arrayOf(PropTypes.string),
     /**
      * Function that will be called when the item selection changes.
-     * The function will receive the selected item as argument or `undefined` if the selection
-     * is cleared.
+     * The function will receive the selected item as first argument or `undefined` if the selection
+     * is cleared, and a callback function to hide the popover as a second argument.
      */
     onItemSelect: PropTypes.func.isRequired,
     /** Indicates whether the component should display a text filter or not. */
     displayDataFilter: PropTypes.bool,
     /** Placeholder to display in the filter text input. */
     filterPlaceholder: PropTypes.string,
+    /** Text to display in the entry to clear the current selection. */
+    clearSelectionText: PropTypes.string,
+    /** Indicates whether items will be clickable or not. */
+    disabled: PropTypes.bool,
   },
 
   getDefaultProps() {
@@ -54,10 +60,13 @@ const SelectPopover = createReactClass({
       triggerAction: 'click',
       items: [],
       itemFormatter: item => item,
-      selectedItem: undefined,
+      multiple: false,
+      selectedItems: [],
       onItemSelect: () => {},
       displayDataFilter: true,
       filterPlaceholder: 'Type to filter',
+      clearSelectionText: 'Clear selection',
+      disabled: false,
     };
   },
 
@@ -65,23 +74,39 @@ const SelectPopover = createReactClass({
     return {
       filterText: '',
       filteredItems: this.props.items,
-      selectedItem: this.props.selectedItem,
+      selectedItems: this.props.selectedItems,
     };
   },
 
   componentWillReceiveProps(nextProps) {
-    if (this.props.selectedItem !== nextProps.selectedItem) {
-      this.setState({ selectedItem: nextProps.selectedItem });
+    if (!lodash.isEqual(this.props.selectedItems, nextProps.selectedItems)) {
+      this.setState({ selectedItems: nextProps.selectedItems });
     }
     if (this.props.items !== nextProps.items) {
       this.filterData(this.state.filterText, nextProps.items);
     }
   },
 
+  handleSelectionChange(nextSelection) {
+    this.setState({ selectedItems: nextSelection });
+    this.props.onItemSelect(nextSelection, () => this.overlay.hide());
+  },
+
+  clearItemSelection() {
+    this.handleSelectionChange([]);
+  },
+
   handleItemSelection(item) {
     return () => {
-      this.setState({ selectedItem: item });
-      this.props.onItemSelect(item);
+      const selectedItems = this.state.selectedItems;
+      let nextSelectedItems;
+      if (this.props.multiple) {
+        // Clicking on a selected value on a multiselect input will toggle the item's select status
+        nextSelectedItems = selectedItems.includes(item) ? lodash.without(selectedItems, item) : lodash.concat(selectedItems, item);
+      } else {
+        nextSelectedItems = [item];
+      }
+      this.handleSelectionChange(nextSelectedItems);
     };
   },
 
@@ -105,33 +130,36 @@ const SelectPopover = createReactClass({
   renderDataFilter(items) {
     return (
       <FormGroup controlId="dataFilterInput" className={style.dataFilterInput}>
-        <FormControl type="text" placeholder={this.props.filterPlaceholder} onChange={this.handleFilterChange(items)} />
+        <FormControl type="text" placeholder={this.props.filterPlaceholder} value={this.state.filterText} onChange={this.handleFilterChange(items)} />
       </FormGroup>
     );
   },
 
   renderClearSelectionItem() {
     return (
-      <ListGroupItem onClick={this.handleItemSelection()}><i className="fa fa-fw fa-times text-danger" /> Clear selection</ListGroupItem>
+      <ListGroupItem onClick={this.clearItemSelection}>
+        <i className="fa fa-fw fa-times text-danger" /> {this.props.clearSelectionText}
+      </ListGroupItem>
     );
   },
 
   render() {
-    const { displayDataFilter, itemFormatter, items, placement, triggerAction, triggerNode, ...otherProps } = this.props;
+    const { displayDataFilter, itemFormatter, items, placement, triggerAction, triggerNode, disabled, ...otherProps } = this.props;
     const popoverProps = this.pickPopoverProps(otherProps);
-    const { filteredItems, selectedItem } = this.state;
+    const { filteredItems, selectedItems } = this.state;
 
     const popover = (
       <Popover {...popoverProps} className={style.customPopover}>
         {displayDataFilter && this.renderDataFilter(items)}
-        {selectedItem && this.renderClearSelectionItem()}
+        {selectedItems.length > 0 && this.renderClearSelectionItem()}
         <IsolatedScroll className={style.scrollableList}>
           <ListGroup>
             {filteredItems.map((item) => {
               return (
                 <ListGroupItem key={item}
-                               onClick={this.handleItemSelection(item)}
-                               active={this.state.selectedItem === item}>
+                               onClick={disabled ? () => {} : this.handleItemSelection(item)}
+                               active={this.state.selectedItems.includes(item)}
+                               disabled={disabled}>
                   {itemFormatter(item)}
                 </ListGroupItem>
               );
@@ -142,7 +170,11 @@ const SelectPopover = createReactClass({
     );
 
     return (
-      <OverlayTrigger trigger={triggerAction} placement={placement} overlay={popover} rootClose>
+      <OverlayTrigger ref={(c) => { this.overlay = c; }}
+                      trigger={triggerAction}
+                      placement={placement}
+                      overlay={popover}
+                      rootClose>
         {triggerNode}
       </OverlayTrigger>
     );

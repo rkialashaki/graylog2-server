@@ -17,11 +17,20 @@
 package org.graylog2.shared.bindings.providers;
 
 import com.github.joschi.jadconfig.util.Duration;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import okhttp3.Authenticator;
+import okhttp3.Challenge;
+import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.Route;
+import org.graylog2.utilities.ProxyHostsPattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -36,7 +45,12 @@ import java.net.SocketAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
+import static com.google.common.net.HttpHeaders.PROXY_AUTHORIZATION;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -54,16 +68,19 @@ public class OkHttpClientProvider implements Provider<OkHttpClient> {
     protected final Duration readTimeout;
     protected final Duration writeTimeout;
     protected final URI httpProxyUri;
+    protected final ProxyHostsPattern nonProxyHostsPattern;
 
     @Inject
     public OkHttpClientProvider(@Named("http_connect_timeout") Duration connectTimeout,
                                 @Named("http_read_timeout") Duration readTimeout,
                                 @Named("http_write_timeout") Duration writeTimeout,
-                                @Named("http_proxy_uri") @Nullable URI httpProxyUri) {
+                                @Named("http_proxy_uri") @Nullable URI httpProxyUri,
+                                @Named("http_non_proxy_hosts") @Nullable ProxyHostsPattern nonProxyHostsPattern) {
         this.connectTimeout = requireNonNull(connectTimeout);
         this.readTimeout = requireNonNull(readTimeout);
         this.writeTimeout = requireNonNull(writeTimeout);
         this.httpProxyUri = httpProxyUri;
+        this.nonProxyHostsPattern = nonProxyHostsPattern;
     }
 
     @Override
@@ -79,9 +96,17 @@ public class OkHttpClientProvider implements Provider<OkHttpClient> {
             final ProxySelector proxySelector = new ProxySelector() {
                 @Override
                 public List<Proxy> select(URI uri) {
+                    final String host = uri.getHost();
+                    if (nonProxyHostsPattern != null && nonProxyHostsPattern.matches(host)) {
+                        LOG.debug("Bypassing proxy server for {}", host);
+                        return ImmutableList.of(Proxy.NO_PROXY);
+                    }
                     try {
-                        final InetAddress targetAddress = InetAddress.getByName(uri.getHost());
+                        final InetAddress targetAddress = InetAddress.getByName(host);
                         if (targetAddress.isLoopbackAddress()) {
+                            return ImmutableList.of(Proxy.NO_PROXY);
+                        } else if (nonProxyHostsPattern != null && nonProxyHostsPattern.matches(targetAddress.getHostAddress())) {
+                            LOG.debug("Bypassing proxy server for {}", targetAddress.getHostAddress());
                             return ImmutableList.of(Proxy.NO_PROXY);
                         }
                     } catch (UnknownHostException e) {
@@ -97,8 +122,48 @@ public class OkHttpClientProvider implements Provider<OkHttpClient> {
             };
 
             clientBuilder.proxySelector(proxySelector);
+
+            if (!isNullOrEmpty(httpProxyUri.getUserInfo())) {
+                final List<String> list = Splitter.on(":")
+                        .limit(2)
+                        .splitToList(httpProxyUri.getUserInfo());
+                if (list.size() == 2) {
+                    clientBuilder.proxyAuthenticator(new ProxyAuthenticator(list.get(0), list.get(1)));
+                }
+            }
         }
 
         return clientBuilder.build();
+    }
+
+    public static class ProxyAuthenticator implements Authenticator {
+        private static final Logger LOG = LoggerFactory.getLogger(ProxyAuthenticator.class);
+        private static final String AUTH_BASIC = "basic";
+
+        private final String credentials;
+
+        ProxyAuthenticator(String user, String password) {
+            this.credentials = Credentials.basic(requireNonNull(user, "user"), requireNonNull(password, "password"));
+        }
+
+        @Nullable
+        @Override
+        public Request authenticate(@Nonnull Route route, @Nonnull Response response) throws IOException {
+            final Set<String> authenticationMethods = response.challenges().stream()
+                    .map(Challenge::scheme)
+                    .map(s -> s.toLowerCase(Locale.ROOT))
+                    .collect(Collectors.toSet());
+
+            if (!authenticationMethods.contains(AUTH_BASIC)) {
+                LOG.warn("Graylog only supports the \"{}\" authentication scheme but the proxy server asks for one of the following: {}",
+                        AUTH_BASIC, authenticationMethods);
+                return null;
+            }
+
+            if (response.request().header(PROXY_AUTHORIZATION) != null) {
+                return null; // Give up, we've already failed to authenticate.
+            }
+            return response.request().newBuilder().addHeader(PROXY_AUTHORIZATION, credentials).build();
+        }
     }
 }

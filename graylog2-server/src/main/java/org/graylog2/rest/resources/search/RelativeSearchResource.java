@@ -48,6 +48,7 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.PositiveOrZero;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
@@ -88,7 +89,8 @@ public class RelativeSearchResource extends SearchResource {
     public SearchResponse searchRelative(
             @ApiParam(name = "query", value = "Query (Lucene syntax)", required = true)
             @QueryParam("query") @NotEmpty String query,
-            @ApiParam(name = "range", value = "Relative timeframe to search in. See method description.", required = true) @QueryParam("range") int range,
+            @ApiParam(name = "range", value = "Relative timeframe to search in. See method description.", required = true)
+            @QueryParam("range") @PositiveOrZero int range,
             @ApiParam(name = "limit", value = "Maximum number of messages to return.", required = false) @QueryParam("limit") int limit,
             @ApiParam(name = "offset", value = "Offset", required = false) @QueryParam("offset") int offset,
             @ApiParam(name = "filter", value = "Filter", required = false) @QueryParam("filter") String filter,
@@ -128,18 +130,21 @@ public class RelativeSearchResource extends SearchResource {
     public ChunkedOutput<ScrollResult.ScrollChunk> searchRelativeChunked(
             @ApiParam(name = "query", value = "Query (Lucene syntax)", required = true)
             @QueryParam("query") @NotEmpty String query,
-            @ApiParam(name = "range", value = "Relative timeframe to search in. See method description.", required = true) @QueryParam("range") int range,
+            @ApiParam(name = "range", value = "Relative timeframe to search in. See method description.", required = true)
+            @QueryParam("range") @PositiveOrZero int range,
             @ApiParam(name = "limit", value = "Maximum number of messages to return.", required = false) @QueryParam("limit") int limit,
             @ApiParam(name = "offset", value = "Offset", required = false) @QueryParam("offset") int offset,
+            @ApiParam(name = "batch_size", value = "Batch size for the backend storage export request.", required = false) @QueryParam("batch_size") @DefaultValue(DEFAULT_SCROLL_BATCH_SIZE) int batchSize,
             @ApiParam(name = "filter", value = "Filter", required = false) @QueryParam("filter") String filter,
-            @ApiParam(name = "fields", value = "Comma separated list of fields to return", required = true) @QueryParam("fields") String fields) {
+            @ApiParam(name = "fields", value = "Comma separated list of fields to return", required = true)
+            @QueryParam("fields") @NotEmpty String fields) {
         checkSearchPermission(filter, RestPermissions.SEARCHES_RELATIVE);
 
         final List<String> fieldList = parseFields(fields);
         final TimeRange timeRange = buildRelativeTimeRange(range);
 
         final ScrollResult scroll = searches
-                .scroll(query, timeRange, limit, offset, fieldList, filter);
+                .scroll(query, timeRange, batchSize, offset, fieldList, filter);
         return buildChunkedOutput(scroll, limit);
     }
 
@@ -156,15 +161,18 @@ public class RelativeSearchResource extends SearchResource {
     public Response exportSearchRelativeChunked(
             @ApiParam(name = "query", value = "Query (Lucene syntax)", required = true)
             @QueryParam("query") @NotEmpty String query,
-            @ApiParam(name = "range", value = "Relative timeframe to search in. See method description.", required = true) @QueryParam("range") int range,
+            @ApiParam(name = "range", value = "Relative timeframe to search in. See method description.", required = true)
+            @QueryParam("range") @PositiveOrZero int range,
             @ApiParam(name = "limit", value = "Maximum number of messages to return.", required = false) @QueryParam("limit") int limit,
             @ApiParam(name = "offset", value = "Offset", required = false) @QueryParam("offset") int offset,
+            @ApiParam(name = "batch_size", value = "Batch size for the backend storage export request.", required = false) @QueryParam("batch_size") @DefaultValue(DEFAULT_SCROLL_BATCH_SIZE) int batchSize,
             @ApiParam(name = "filter", value = "Filter", required = false) @QueryParam("filter") String filter,
-            @ApiParam(name = "fields", value = "Comma separated list of fields to return", required = true) @QueryParam("fields") String fields) {
+            @ApiParam(name = "fields", value = "Comma separated list of fields to return", required = true)
+            @QueryParam("fields") @NotEmpty String fields) {
         checkSearchPermission(filter, RestPermissions.SEARCHES_RELATIVE);
         final String filename = "graylog-search-result-relative-" + range + ".csv";
         return Response
-            .ok(searchRelativeChunked(query, range, limit, offset, filter, fields))
+            .ok(searchRelativeChunked(query, range, limit, offset, batchSize, filter, fields))
             .header("Content-Disposition", "attachment; filename=" + filename)
             .build();
     }
@@ -184,7 +192,8 @@ public class RelativeSearchResource extends SearchResource {
             @QueryParam("query") @NotEmpty String query,
             @ApiParam(name = "stacked_fields", value = "Fields to stack", required = false) @QueryParam("stacked_fields") String stackedFieldsParam,
             @ApiParam(name = "size", value = "Maximum number of terms to return", required = false) @QueryParam("size") int size,
-            @ApiParam(name = "range", value = "Relative timeframe to search in. See search method description.", required = true) @QueryParam("range") int range,
+            @ApiParam(name = "range", value = "Relative timeframe to search in. See search method description.", required = true)
+            @QueryParam("range") @PositiveOrZero int range,
             @ApiParam(name = "filter", value = "Filter", required = false) @QueryParam("filter") String filter,
             @ApiParam(name = "order", value = "Sorting (field:asc / field:desc)", required = false) @QueryParam("order") String order) {
         checkSearchPermission(filter, RestPermissions.SEARCHES_RELATIVE);
@@ -208,8 +217,10 @@ public class RelativeSearchResource extends SearchResource {
             @ApiParam(name = "query", value = "Query (Lucene syntax)", required = true)
             @QueryParam("query") @NotEmpty String query,
             @ApiParam(name = "stacked_fields", value = "Fields to stack", required = false) @QueryParam("stacked_fields") String stackedFieldsParam,
-            @ApiParam(name = "size", value = "Maximum number of terms to return", required = true) @QueryParam("size") @Min(1) int size,
-            @ApiParam(name = "range", value = "Relative timeframe to search in. See search method description.", required = true) @QueryParam("range") int range,
+            @ApiParam(name = "size", value = "Maximum number of terms to return", required = true)
+            @QueryParam("size") @Min(1) int size,
+            @ApiParam(name = "range", value = "Relative timeframe to search in. See search method description.", required = true)
+            @QueryParam("range") @PositiveOrZero int range,
             @ApiParam(name = "interval", value = "Histogram interval / bucket size. (year, quarter, month, week, day, hour or minute)", required = false)
             @QueryParam("interval") String interval,
             @ApiParam(name = "filter", value = "Filter", required = false) @QueryParam("filter") String filter,
@@ -241,7 +252,8 @@ public class RelativeSearchResource extends SearchResource {
             @ApiParam(name = "query", value = "Query (Lucene syntax)", required = true)
             @QueryParam("query") @NotEmpty String query,
             @ApiParam(name = "size", value = "Maximum number of terms to return", required = false) @QueryParam("size") int size,
-            @ApiParam(name = "range", value = "Relative timeframe to search in. See search method description.", required = true) @QueryParam("range") int range,
+            @ApiParam(name = "range", value = "Relative timeframe to search in. See search method description.", required = true)
+            @QueryParam("range") @PositiveOrZero int range,
             @ApiParam(name = "filter", value = "Filter", required = false) @QueryParam("filter") String filter) {
         checkSearchPermission(filter, RestPermissions.SEARCHES_RELATIVE);
 
@@ -266,7 +278,8 @@ public class RelativeSearchResource extends SearchResource {
             @QueryParam("field") @NotEmpty String field,
             @ApiParam(name = "query", value = "Query (Lucene syntax)", required = true)
             @QueryParam("query") @NotEmpty String query,
-            @ApiParam(name = "range", value = "Relative timeframe to search in. See search method description.", required = true) @QueryParam("range") int range,
+            @ApiParam(name = "range", value = "Relative timeframe to search in. See search method description.", required = true)
+            @QueryParam("range") @PositiveOrZero int range,
             @ApiParam(name = "filter", value = "Filter", required = false) @QueryParam("filter") String filter) {
         checkSearchPermission(filter, RestPermissions.SEARCHES_RELATIVE);
 
@@ -287,7 +300,8 @@ public class RelativeSearchResource extends SearchResource {
             @QueryParam("query") @NotEmpty String query,
             @ApiParam(name = "interval", value = "Histogram interval / bucket size. (year, quarter, month, week, day, hour or minute)", required = true)
             @QueryParam("interval") @NotEmpty String interval,
-            @ApiParam(name = "range", value = "Relative timeframe to search in. See search method description.", required = true) @QueryParam("range") int range,
+            @ApiParam(name = "range", value = "Relative timeframe to search in. See search method description.", required = true)
+            @QueryParam("range") @PositiveOrZero int range,
             @ApiParam(name = "filter", value = "Filter", required = false) @QueryParam("filter") String filter) {
         checkSearchPermission(filter, RestPermissions.SEARCHES_RELATIVE);
 
@@ -321,7 +335,8 @@ public class RelativeSearchResource extends SearchResource {
             @QueryParam("field") @NotEmpty String field,
             @ApiParam(name = "interval", value = "Histogram interval / bucket size. (year, quarter, month, week, day, hour or minute)", required = true)
             @QueryParam("interval") @NotEmpty String interval,
-            @ApiParam(name = "range", value = "Relative timeframe to search in. See search method description.", required = true) @QueryParam("range") int range,
+            @ApiParam(name = "range", value = "Relative timeframe to search in. See search method description.", required = true)
+            @QueryParam("range") @PositiveOrZero int range,
             @ApiParam(name = "filter", value = "Filter", required = false) @QueryParam("filter") String filter,
             @ApiParam(name = "cardinality", value = "Calculate the cardinality of the field as well", required = false) @QueryParam("cardinality") boolean includeCardinality
     ) {

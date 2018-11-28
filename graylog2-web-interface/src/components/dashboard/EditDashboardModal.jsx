@@ -38,7 +38,7 @@ const EditDashboardModal = createReactClass({
 
   render() {
     return (
-      <BootstrapModalForm ref="modal"
+      <BootstrapModalForm ref={(modal) => { this.modal = modal; }}
                           title={this._isCreateModal() ? 'New Dashboard' : `Edit Dashboard ${this.props.title}`}
                           onSubmitForm={this._save}
                           submitButtonText="Save">
@@ -51,11 +51,11 @@ const EditDashboardModal = createReactClass({
   },
 
   close() {
-    this.refs.modal.close();
+    this.modal.close();
   },
 
   open() {
-    this.refs.modal.open();
+    this.modal.open();
   },
 
   _save() {
@@ -76,17 +76,6 @@ const EditDashboardModal = createReactClass({
       promise = DashboardsActions.update(this.state);
       promise.then(() => {
         this.close();
-
-        const idSelector = `[data-dashboard-id="${this.state.id}"]`;
-        const $title = $(`${idSelector}.dashboard-title`);
-        if ($title.length > 0) {
-          $title.html(this.state.title);
-        }
-
-        const $description = $(`${idSelector}.dashboard-description`);
-        if ($description.length > 0) {
-          $description.html(this.state.description);
-        }
 
         if (typeof this.props.onSaved === 'function') {
           this.props.onSaved(this.state.id);

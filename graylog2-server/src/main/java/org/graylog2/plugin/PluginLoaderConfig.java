@@ -16,16 +16,7 @@
  */
 package org.graylog2.plugin;
 
-import com.github.joschi.jadconfig.Parameter;
+import org.graylog2.configuration.PathConfiguration;
 
-/**
- * @author Dennis Oelkers <dennis@torch.sh>
- */
-public class PluginLoaderConfig {
-    @Parameter(value = "plugin_dir")
-    private String pluginDir = "plugin";
-
-    public String getPluginDir() {
-        return pluginDir;
-    }
+public class PluginLoaderConfig extends PathConfiguration {
 }

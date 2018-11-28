@@ -16,7 +16,7 @@ const ApiRoutes = {
   AlertsApiController: {
     get: (alertId) => { return { url: `/streams/alerts/${alertId}` }; },
     list: (streamId, since) => { return { url: `/streams/${streamId}/alerts?since=${since}` }; },
-    listPaginated: (streamId, skip, limit) => { return { url: `/streams/${streamId}/alerts/paginated?skip=${skip}&limit=${limit}` }; },
+    listPaginated: (streamId, skip, limit, state) => { return { url: `/streams/${streamId}/alerts/paginated?skip=${skip}&limit=${limit}&state=${state}` }; },
     listAllPaginated: (skip, limit, state) => { return { url: `/streams/alerts/paginated?skip=${skip}&limit=${limit}&state=${state}` }; },
     listAllStreams: (since) => { return { url: `/streams/alerts?since=${since}` }; },
   },
@@ -24,15 +24,24 @@ const ApiRoutes = {
     available: () => { return { url: '/alerts/conditions/types' }; },
     list: () => { return { url: '/alerts/conditions' }; },
   },
-  BundlesApiController: {
-    apply: (bundleId) => { return { url: `/system/bundles/${bundleId}/apply` }; },
-    create: () => { return { url: '/system/bundles' }; },
-    delete: (bundleId) => { return { url: `/system/bundles/${bundleId}` }; },
-    export: () => { return { url: '/system/bundles/export' }; },
-    list: () => { return { url: '/system/bundles' }; },
+  CatalogsController: {
+    showEntityIndex: () => { return { url: '/system/catalog' }; },
+    queryEntities: () => { return { url: '/system/catalog' }; },
   },
   CodecTypesController: {
     list: () => { return { url: '/system/codecs/types/all' }; },
+  },
+  ContentPacksController: {
+    list: () => { return { url: '/system/content_packs/latest' }; },
+    get: (contentPackId) => { return { url: `/system/content_packs/${contentPackId}` }; },
+    getRev: (contentPackId, revision) => { return { url: `/system/content_packs/${contentPackId}/${revision}` }; },
+    downloadRev: (contentPackId, revision) => { return { url: `/system/content_packs/${contentPackId}/${revision}/download` }; },
+    create: () => { return { url: '/system/content_packs' }; },
+    delete: (contentPackId) => { return { url: `/system/content_packs/${contentPackId}` }; },
+    deleteRev: (contentPackId, revision) => { return { url: `/system/content_packs/${contentPackId}/${revision}` }; },
+    install: (contentPackId, revision) => { return { url: `/system/content_packs/${contentPackId}/${revision}/installations` }; },
+    installList: (contentPackId) => { return { url: `/system/content_packs/${contentPackId}/installations` }; },
+    uninstall: (contentPackId, installId) => { return { url: `/system/content_packs/${contentPackId}/installations/${installId}` }; },
   },
   CountsApiController: {
     total: () => { return { url: '/count/total' }; },
@@ -42,6 +51,9 @@ const ApiRoutes = {
     list: () => { return { url: '/system/cluster/nodes' }; },
     node: () => { return { url: '/system/cluster/node' }; },
     elasticsearchStats: () => { return { url: '/system/cluster/stats/elasticsearch' }; },
+  },
+  GrokPatternsController: {
+    test: () => { return { url: '/system/grok/test' }; },
   },
   DashboardsApiController: {
     create: () => { return { url: '/dashboards' }; },

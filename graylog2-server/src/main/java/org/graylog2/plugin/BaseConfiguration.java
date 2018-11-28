@@ -26,13 +26,16 @@ import com.lmax.disruptor.BusySpinWaitStrategy;
 import com.lmax.disruptor.SleepingWaitStrategy;
 import com.lmax.disruptor.WaitStrategy;
 import com.lmax.disruptor.YieldingWaitStrategy;
+import org.graylog2.configuration.PathConfiguration;
+import org.graylog2.utilities.ProxyHostsPattern;
+import org.graylog2.utilities.ProxyHostsPatternConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 
 @SuppressWarnings("FieldMayBeFinal")
-public abstract class BaseConfiguration {
+public abstract class BaseConfiguration extends PathConfiguration {
     private static final Logger LOG = LoggerFactory.getLogger(BaseConfiguration.class);
 
     @Parameter(value = "shutdown_timeout", validator = PositiveIntegerValidator.class)
@@ -52,9 +55,6 @@ public abstract class BaseConfiguration {
 
     @Parameter(value = "inputbuffer_wait_strategy", required = true)
     private String inputBufferWaitStrategy = "blocking";
-
-    @Parameter(value = "plugin_dir")
-    private String pluginDir = "plugin";
 
     @Parameter(value = "async_eventbus_processors")
     private int asyncEventbusProcessors = 2;
@@ -76,6 +76,9 @@ public abstract class BaseConfiguration {
 
     @Parameter(value = "http_proxy_uri")
     private URI httpProxyUri;
+
+    @Parameter(value = "http_non_proxy_hosts", converter = ProxyHostsPatternConverter.class)
+    private ProxyHostsPattern httpNonProxyHostsPattern;
 
     @Parameter(value = "http_connect_timeout", validator = PositiveDurationValidator.class)
     private Duration httpConnectTimeout = Duration.seconds(5L);
@@ -129,10 +132,6 @@ public abstract class BaseConfiguration {
         return getWaitStrategy(inputBufferWaitStrategy, "inputbuffer_wait_strategy");
     }
 
-    public String getPluginDir() {
-        return pluginDir;
-    }
-
     public int getAsyncEventbusProcessors() {
         return asyncEventbusProcessors;
     }
@@ -169,6 +168,10 @@ public abstract class BaseConfiguration {
 
     public URI getHttpProxyUri() {
         return httpProxyUri;
+    }
+
+    public ProxyHostsPattern getHttpNonProxyHostsPattern() {
+        return httpNonProxyHostsPattern;
     }
 
     public Duration getHttpConnectTimeout() {

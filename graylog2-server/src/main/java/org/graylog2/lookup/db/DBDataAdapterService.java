@@ -17,43 +17,41 @@
 package org.graylog2.lookup.db;
 
 import com.google.common.collect.ImmutableList;
-
-import com.google.common.collect.Streams;
 import com.mongodb.BasicDBObject;
-
 import org.bson.types.ObjectId;
 import org.graylog2.bindings.providers.MongoJackObjectMapperProvider;
 import org.graylog2.database.MongoConnection;
+import org.graylog2.database.PaginatedList;
+import org.graylog2.events.ClusterEventBus;
 import org.graylog2.lookup.dto.DataAdapterDto;
-import org.graylog2.rest.models.PaginatedList;
+import org.graylog2.lookup.events.DataAdaptersDeleted;
+import org.graylog2.lookup.events.DataAdaptersUpdated;
 import org.mongojack.DBCursor;
 import org.mongojack.DBQuery;
 import org.mongojack.DBSort;
 import org.mongojack.JacksonDBCollection;
 import org.mongojack.WriteResult;
 
+import javax.inject.Inject;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import javax.inject.Inject;
 
 public class DBDataAdapterService {
-
     private final JacksonDBCollection<DataAdapterDto, ObjectId> db;
+    private final ClusterEventBus clusterEventBus;
 
     @Inject
     public DBDataAdapterService(MongoConnection mongoConnection,
-                                MongoJackObjectMapperProvider mapper) {
-
-        db = JacksonDBCollection.wrap(mongoConnection.getDatabase().getCollection("lut_data_adapters"),
+                                MongoJackObjectMapperProvider mapper,
+                                ClusterEventBus clusterEventBus) {
+        this.db = JacksonDBCollection.wrap(mongoConnection.getDatabase().getCollection("lut_data_adapters"),
                 DataAdapterDto.class,
                 ObjectId.class,
                 mapper.get());
+        this.clusterEventBus = clusterEventBus;
 
         db.createIndex(new BasicDBObject("name", 1), new BasicDBObject("unique", true));
     }
@@ -70,17 +68,20 @@ public class DBDataAdapterService {
 
     public DataAdapterDto save(DataAdapterDto table) {
         WriteResult<DataAdapterDto, ObjectId> save = db.save(table);
-        return save.getSavedObject();
+        final DataAdapterDto savedDataAdapter = save.getSavedObject();
+        clusterEventBus.post(DataAdaptersUpdated.create(savedDataAdapter.id()));
+
+        return savedDataAdapter;
     }
 
     public PaginatedList<DataAdapterDto> findPaginated(DBQuery.Query query, DBSort.SortBuilder sort, int page, int perPage) {
-
-        final DBCursor<DataAdapterDto> cursor = db.find(query)
+        try (DBCursor<DataAdapterDto> cursor = db.find(query)
                 .sort(sort)
                 .limit(perPage)
-                .skip(perPage * Math.max(0, page - 1));
+                .skip(perPage * Math.max(0, page - 1))) {
 
-        return new PaginatedList<>(asImmutableList(cursor), cursor.count(), page, perPage);
+            return new PaginatedList<>(asImmutableList(cursor), cursor.count(), page, perPage);
+        }
     }
 
     private ImmutableList<DataAdapterDto> asImmutableList(Iterator<? extends DataAdapterDto> cursor) {
@@ -88,19 +89,24 @@ public class DBDataAdapterService {
     }
 
     public void delete(String idOrName) {
-        try {
-            db.removeById(new ObjectId(idOrName));
-        } catch (IllegalArgumentException e) {
-            // not an ObjectId, try again with name
-            db.remove(DBQuery.is("name", idOrName));
-        }
+        final Optional<DataAdapterDto> dataAdapterDto = get(idOrName);
+        dataAdapterDto
+                .map(DataAdapterDto::id)
+                .map(ObjectId::new)
+                .ifPresent(db::removeById);
+        dataAdapterDto.ifPresent(dataAdapter -> clusterEventBus.post(DataAdaptersDeleted.create(dataAdapter.id())));
     }
 
     public Collection<DataAdapterDto> findByIds(Set<String> idSet) {
-        return asImmutableList(db.find(DBQuery.in("_id", idSet.stream().map(ObjectId::new).collect(Collectors.toList()))));
+        final DBQuery.Query query = DBQuery.in("_id", idSet.stream().map(ObjectId::new).collect(Collectors.toList()));
+        try (DBCursor<DataAdapterDto> cursor = db.find(query)) {
+            return asImmutableList(cursor);
+        }
     }
 
-    public Stream<DataAdapterDto> streamAll() {
-        return Streams.stream((Iterable<DataAdapterDto>) db.find());
+    public Collection<DataAdapterDto> findAll() {
+        try (DBCursor<DataAdapterDto> cursor = db.find()) {
+            return asImmutableList(cursor);
+        }
     }
 }

@@ -2,15 +2,14 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import { Row, Col, Button } from 'react-bootstrap';
 
-import StoreProvider from 'injection/StoreProvider';
-
-const GrokPatternsStore = StoreProvider.getStore('GrokPatterns');
-
 import PageHeader from 'components/common/PageHeader';
 import EditPatternModal from 'components/grok-patterns/EditPatternModal';
 import BulkLoadPatternModal from 'components/grok-patterns/BulkLoadPatternModal';
 import DataTable from 'components/common/DataTable';
 import IfPermitted from 'components/common/IfPermitted';
+import StoreProvider from 'injection/StoreProvider';
+
+const GrokPatternsStore = StoreProvider.getStore('GrokPatterns');
 
 const GrokPatterns = createReactClass({
   displayName: 'GrokPatterns',
@@ -25,9 +24,16 @@ const GrokPatterns = createReactClass({
     this.loadData();
   },
 
+  componentWillUnmount() {
+    if (this.loadPromise) {
+      this.loadPromise.cancel();
+    }
+  },
+
   loadData() {
-    GrokPatternsStore.loadPatterns((patterns) => {
-      if (this.isMounted()) {
+    this.loadPromise = GrokPatternsStore.loadPatterns((patterns) => {
+      if (!this.loadPromise.isCancelled()) {
+        this.loadPromise = undefined;
         this.setState({
           patterns: patterns,
         });
@@ -45,6 +51,10 @@ const GrokPatterns = createReactClass({
       callback();
       this.loadData();
     });
+  },
+
+  testPattern(pattern, callback, errCallback) {
+    GrokPatternsStore.testPattern(pattern, callback, errCallback);
   },
 
   confirmedRemove(pattern) {
@@ -71,6 +81,7 @@ const GrokPatterns = createReactClass({
   },
 
   _patternFormatter(pattern) {
+    const patterns = this.state.patterns.filter(p => p.name !== pattern.name);
     return (
       <tr key={pattern.id}>
         <td>{pattern.name}</td>
@@ -86,6 +97,8 @@ const GrokPatterns = createReactClass({
             <EditPatternModal id={pattern.id}
                               name={pattern.name}
                               pattern={pattern.pattern}
+                              testPattern={this.testPattern}
+                              patterns={patterns}
                               create={false}
                               reload={this.loadData}
                               savePattern={this.savePattern}
@@ -114,7 +127,9 @@ const GrokPatterns = createReactClass({
               <EditPatternModal id={''}
                                 name={''}
                                 pattern={''}
+                                patterns={this.state.patterns}
                                 create
+                                testPattern={this.testPattern}
                                 reload={this.loadData}
                                 savePattern={this.savePattern}
                                 validPatternName={this.validPatternName} />

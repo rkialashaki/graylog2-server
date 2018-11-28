@@ -4,6 +4,8 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const merge = require('webpack-merge');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
+const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
+const UniqueChunkIdPlugin = require('./webpack/UniqueChunkIdPlugin');
 
 const ROOT_PATH = path.resolve(__dirname);
 const APP_PATH = path.resolve(ROOT_PATH, 'src');
@@ -13,7 +15,7 @@ const VENDOR_MANIFEST_PATH = path.resolve(MANIFESTS_PATH, 'vendor-manifest.json'
 const TARGET = process.env.npm_lifecycle_event;
 process.env.BABEL_ENV = TARGET;
 
-const BABELRC = path.resolve(ROOT_PATH, '.babelrc');
+const BABELRC = path.resolve(ROOT_PATH, 'babel.config.js');
 const BABELOPTIONS = {
   cacheDirectory: 'cache',
   extends: BABELRC,
@@ -29,7 +31,8 @@ const webpackConfig = {
   dependencies: ['vendor'],
   entry: {
     app: APP_PATH,
-    polyfill: ['babel-polyfill'],
+    builtins: [path.resolve(APP_PATH, 'injection', 'builtins.js')],
+    polyfill: ['@babel/polyfill'],
   },
   output: {
     path: BUILD_PATH,
@@ -37,7 +40,6 @@ const webpackConfig = {
   },
   module: {
     rules: [
-      { test: /pages\/.+\.jsx$/, use: 'react-proxy-loader', exclude: /node_modules|\.node_cache|ServerUnavailablePage/ },
       { test: /\.js(x)?$/, use: BABELLOADER, exclude: /node_modules|\.node_cache/ },
       { test: /\.ts$/, use: [BABELLOADER, { loader: 'ts-loader' }], exclude: /node_modules|\.node_cache/ },
       { test: /\.(woff(2)?|svg|eot|ttf|gif|jpg)(\?.+)?$/, use: 'file-loader' },
@@ -67,6 +69,11 @@ const webpackConfig = {
   resolveLoader: { modules: [path.join(ROOT_PATH, 'node_modules')], moduleExtensions: ['-loader'] },
   devtool: 'source-map',
   plugins: [
+    new UniqueChunkIdPlugin(),
+    new webpack.HashedModuleIdsPlugin({
+      hashFunction: 'sha256',
+      hashDigestLength: 8,
+    }),
     new webpack.DllReferencePlugin({ manifest: VENDOR_MANIFEST_PATH, context: ROOT_PATH }),
     new HtmlWebpackPlugin({
       title: 'Graylog',
@@ -83,6 +90,12 @@ const webpackConfig = {
         if (c2.names[0] === 'polyfill') {
           return 1;
         }
+        if (c1.names[0] === 'builtins') {
+          return -1;
+        }
+        if (c2.names[0] === 'builtins') {
+          return 1;
+        }
         if (c1.names[0] === 'app') {
           return 1;
         }
@@ -97,9 +110,11 @@ const webpackConfig = {
 };
 
 if (TARGET === 'start') {
+  // eslint-disable-next-line no-console
   console.error('Running in development (no HMR) mode');
   module.exports = merge(webpackConfig, {
-    devtool: 'eval',
+    mode: 'development',
+    devtool: 'cheap-module-source-map',
     output: {
       path: BUILD_PATH,
       filename: '[name].js',
@@ -108,6 +123,7 @@ if (TARGET === 'start') {
     plugins: [
       new webpack.DefinePlugin({
         DEVELOPMENT: true,
+        GRAYLOG_HTTP_PUBLISH_URI: JSON.stringify(process.env.GRAYLOG_HTTP_PUBLISH_URI),
       }),
       new CopyWebpackPlugin([{ from: 'config.js' }]),
       new webpack.HotModuleReplacementPlugin(),
@@ -116,22 +132,28 @@ if (TARGET === 'start') {
 }
 
 if (TARGET === 'build') {
+  // eslint-disable-next-line no-console
   console.error('Running in production mode');
   process.env.NODE_ENV = 'production';
   module.exports = merge(webpackConfig, {
+    mode: 'production',
+    optimization: {
+      minimizer: [new UglifyJsPlugin({
+        uglifyOptions: {
+          minimize: true,
+          sourceMap: true,
+          compress: {
+            warnings: false,
+          },
+          mangle: {
+            reserved: ['$super', '$', 'exports', 'require'],
+          },
+        },
+      })],
+    },
     plugins: [
       new webpack.DefinePlugin({
         'process.env.NODE_ENV': JSON.stringify('production'),
-      }),
-      new webpack.optimize.UglifyJsPlugin({
-        minimize: true,
-        sourceMap: true,
-        compress: {
-          warnings: false,
-        },
-        mangle: {
-          except: ['$super', '$', 'exports', 'require'],
-        },
       }),
       new webpack.LoaderOptionsPlugin({
         minimize: true,
@@ -141,6 +163,7 @@ if (TARGET === 'build') {
 }
 
 if (TARGET === 'test') {
+  // eslint-disable-next-line no-console
   console.error('Running test/ci mode');
   module.exports = merge(webpackConfig, {
     module: {

@@ -21,9 +21,12 @@ class BootstrapModalForm extends React.Component {
     onModalClose: () => {},
     onSubmitForm: undefined,
     onCancel: () => {},
-  }
+    bsSize: undefined,
+    show: false,
+  };
 
   static propTypes = {
+    bsSize: PropTypes.oneOf(['lg', 'large', 'sm', 'small']),
     /* Modal title */
     title: PropTypes.oneOfType([PropTypes.string, PropTypes.node]).isRequired,
     /* Form contents, included in the modal body */
@@ -42,20 +45,21 @@ class BootstrapModalForm extends React.Component {
     /* Text to use in the submit button. "Submit" is the default */
     submitButtonText: PropTypes.string,
     submitButtonDisabled: PropTypes.bool,
-  }
+    show: PropTypes.bool,
+  };
 
   onModalCancel = () => {
     this.props.onCancel();
     this.close();
-  }
+  };
 
   open = () => {
     this.modal.open();
-  }
+  };
 
   close = () => {
     this.modal.close();
-  }
+  };
 
   submit = (event) => {
     const formDOMNode = this.form;
@@ -78,7 +82,7 @@ class BootstrapModalForm extends React.Component {
       event.preventDefault();
       this.props.onSubmitForm(event);
     }
-  }
+  };
 
   render() {
     const body = (
@@ -91,6 +95,8 @@ class BootstrapModalForm extends React.Component {
       <BootstrapModalWrapper ref={(c) => { this.modal = c; }}
                              onOpen={this.props.onModalOpen}
                              onClose={this.props.onModalClose}
+                             bsSize={this.props.bsSize}
+                             showModal={this.props.show}
                              onHide={this.onModalCancel}>
         <Modal.Header closeButton>
           <Modal.Title>{this.props.title}</Modal.Title>

@@ -2,8 +2,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { Input } from 'components/bootstrap';
-import UniversalSearch from 'logic/search/UniversalSearch';
+import lodash from 'lodash';
 import $ from 'jquery';
+
+import UniversalSearch from 'logic/search/UniversalSearch';
 // eslint-disable-next-line no-unused-vars
 import Typeahead from 'typeahead.js';
 
@@ -84,8 +86,8 @@ class TypeAheadInput extends React.Component {
   };
 
   _updateTypeahead = (props) => {
-    this.fieldInput = this.refs.fieldInput.getInputDOMNode();
-    this.fieldFormGroup = ReactDOM.findDOMNode(this.refs.fieldInput);
+    this.fieldInput = this.fieldInputElem.getInputDOMNode();
+    this.fieldFormGroup = ReactDOM.findDOMNode(this.fieldInputElem);
 
     const $fieldInput = $(this.fieldInput);
 
@@ -100,10 +102,11 @@ class TypeAheadInput extends React.Component {
       source: UniversalSearch.substringMatcher(props.suggestions, props.displayKey, 6),
       templates: {
         suggestion: (value) => {
+          // Escape all text here that may be user-generated, since this is not automatically escaped by React.
           if (props.suggestionText) {
-            return `<div><strong>${props.suggestionText}</strong> ${value[props.displayKey]}</div>`;
+            return `<div><strong>${lodash.escape(props.suggestionText)}</strong> ${lodash.escape(value[props.displayKey])}</div>`;
           }
-          return `<div>${value[props.displayKey]}</div>`;
+          return `<div>${lodash.escape(value[props.displayKey])}</div>`;
         },
       },
     });
@@ -123,7 +126,7 @@ class TypeAheadInput extends React.Component {
   render() {
     return (<Input id={this.props.id}
                    type="text"
-                   ref="fieldInput"
+                   ref={(fieldInput) => { this.fieldInputElem = fieldInput; }}
                    wrapperClassName="typeahead-wrapper"
                    label={this.props.label}
                    onKeyPress={this.props.onKeyPress} />);

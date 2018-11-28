@@ -95,9 +95,12 @@ import org.graylog.plugins.pipelineprocessor.functions.strings.Concat;
 import org.graylog.plugins.pipelineprocessor.functions.strings.Contains;
 import org.graylog.plugins.pipelineprocessor.functions.strings.EndsWith;
 import org.graylog.plugins.pipelineprocessor.functions.strings.GrokMatch;
+import org.graylog.plugins.pipelineprocessor.functions.strings.Join;
 import org.graylog.plugins.pipelineprocessor.functions.strings.KeyValue;
 import org.graylog.plugins.pipelineprocessor.functions.strings.Lowercase;
 import org.graylog.plugins.pipelineprocessor.functions.strings.RegexMatch;
+import org.graylog.plugins.pipelineprocessor.functions.strings.RegexReplace;
+import org.graylog.plugins.pipelineprocessor.functions.strings.Replace;
 import org.graylog.plugins.pipelineprocessor.functions.strings.Split;
 import org.graylog.plugins.pipelineprocessor.functions.strings.StartsWith;
 import org.graylog.plugins.pipelineprocessor.functions.strings.Substring;
@@ -110,6 +113,8 @@ import org.graylog.plugins.pipelineprocessor.functions.syslog.SyslogPriorityConv
 import org.graylog.plugins.pipelineprocessor.functions.syslog.SyslogPriorityToStringConversion;
 import org.graylog.plugins.pipelineprocessor.functions.urls.IsUrl;
 import org.graylog.plugins.pipelineprocessor.functions.urls.UrlConversion;
+import org.graylog.plugins.pipelineprocessor.functions.urls.UrlDecode;
+import org.graylog.plugins.pipelineprocessor.functions.urls.UrlEncode;
 import org.graylog2.plugin.PluginModule;
 
 public class ProcessorFunctionsModule extends PluginModule {
@@ -157,6 +162,7 @@ public class ProcessorFunctionsModule extends PluginModule {
 
         // generic functions
         addMessageProcessorFunction(RegexMatch.NAME, RegexMatch.class);
+        addMessageProcessorFunction(RegexReplace.NAME, RegexReplace.class);
         addMessageProcessorFunction(GrokMatch.NAME, GrokMatch.class);
 
         // string functions
@@ -171,8 +177,10 @@ public class ProcessorFunctionsModule extends PluginModule {
         addMessageProcessorFunction(Uppercase.NAME, Uppercase.class);
         addMessageProcessorFunction(Concat.NAME, Concat.class);
         addMessageProcessorFunction(KeyValue.NAME, KeyValue.class);
+        addMessageProcessorFunction(Join.NAME, Join.class);
         addMessageProcessorFunction(Split.NAME, Split.class);
         addMessageProcessorFunction(StartsWith.NAME, StartsWith.class);
+        addMessageProcessorFunction(Replace.NAME, Replace.class);
 
         // json
         addMessageProcessorFunction(JsonParse.NAME, JsonParse.class);
@@ -227,6 +235,8 @@ public class ProcessorFunctionsModule extends PluginModule {
 
         // URL parsing
         addMessageProcessorFunction(UrlConversion.NAME, UrlConversion.class);
+        addMessageProcessorFunction(UrlDecode.NAME, UrlDecode.class);
+        addMessageProcessorFunction(UrlEncode.NAME, UrlEncode.class);
 
         // Syslog support
         addMessageProcessorFunction(SyslogFacilityConversion.NAME, SyslogFacilityConversion.class);

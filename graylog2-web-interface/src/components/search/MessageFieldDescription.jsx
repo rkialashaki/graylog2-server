@@ -4,16 +4,16 @@ import { Alert } from 'react-bootstrap';
 import Immutable from 'immutable';
 
 import StoreProvider from 'injection/StoreProvider';
+import ActionsProvider from 'injection/ActionsProvider';
+import { DecoratedMessageFieldMarker } from 'components/search';
+import DecorationStats from 'logic/message/DecorationStats';
+import MessageFieldSearchActions from './MessageFieldSearchActions';
+
 const SearchStore = StoreProvider.getStore('Search');
 // eslint-disable-next-line no-unused-vars
 const MessagesStore = StoreProvider.getStore('Messages');
-
-import ActionsProvider from 'injection/ActionsProvider';
 const MessagesActions = ActionsProvider.getActions('Messages');
 
-import MessageFieldSearchActions from './MessageFieldSearchActions';
-
-import { DecoratedMessageFieldMarker } from 'components/search';
 
 class MessageFieldDescription extends React.Component {
   static propTypes = {
@@ -23,7 +23,6 @@ class MessageFieldDescription extends React.Component {
     renderForDisplay: PropTypes.func.isRequired,
     disableFieldActions: PropTypes.bool,
     customFieldActions: PropTypes.node,
-    isDecorated: PropTypes.bool,
   };
 
   state = {
@@ -80,10 +79,12 @@ class MessageFieldDescription extends React.Component {
   };
 
   render() {
-    const className = this.props.fieldName === 'message' || this.props.fieldName === 'full_message' ? 'message-field' : '';
+    const fieldName = this.props.fieldName;
+    const className = fieldName === 'message' || fieldName === 'full_message' ? 'message-field' : '';
+    const isDecorated = DecorationStats.isFieldDecorated(this.props.message, fieldName);
 
     return (
-      <dd className={className} key={`${this.props.fieldName}dd`}>
+      <dd className={className} key={`${fieldName}dd`}>
         {this._getFormattedFieldActions()}
         <div className="field-value">{this.props.renderForDisplay(this.props.fieldName)}</div>
         {this._shouldShowTerms() &&
@@ -91,7 +92,7 @@ class MessageFieldDescription extends React.Component {
           Field terms: &nbsp;{this._getFormattedTerms()}
         </Alert>
         }
-        {this.props.isDecorated && <DecoratedMessageFieldMarker />}
+        {isDecorated && <DecoratedMessageFieldMarker />}
       </dd>
     );
   }

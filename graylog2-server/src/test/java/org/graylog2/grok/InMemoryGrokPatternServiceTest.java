@@ -17,15 +17,22 @@
 package org.graylog2.grok;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.graylog2.database.NotFoundException;
+import org.graylog2.events.ClusterEventBus;
 import org.graylog2.plugin.database.ValidationException;
+import org.graylog2.shared.SuppressForbidden;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Executors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.fail;
 
 public class InMemoryGrokPatternServiceTest {
@@ -33,8 +40,10 @@ public class InMemoryGrokPatternServiceTest {
     private InMemoryGrokPatternService service;
 
     @Before
+    @SuppressForbidden("Using Executors.newSingleThreadExecutor() is okay in tests")
     public void setup() {
-        service = new InMemoryGrokPatternService();
+        final ClusterEventBus clusterEventBus = new ClusterEventBus("cluster-event-bus", Executors.newSingleThreadExecutor());
+        service = new InMemoryGrokPatternService(clusterEventBus);
     }
 
     @Test
@@ -47,11 +56,9 @@ public class InMemoryGrokPatternServiceTest {
                 .isNotNull()
                 .isEqualTo(pattern);
 
-        try {
-            service.load("whatever");
-        } catch (NotFoundException e) {
-            assertThat(e).hasMessage("Couldn't find Grok pattern with ID " + "whatever");
-        }
+        assertThatExceptionOfType(NotFoundException.class)
+                .isThrownBy(() -> service.load("whatever"))
+                .withMessage("Couldn't find Grok pattern with ID whatever");
     }
 
     @Test
@@ -61,6 +68,15 @@ public class InMemoryGrokPatternServiceTest {
         GrokPattern pattern3 = service.save(GrokPattern.create("NAME3", ".*"));
 
         assertThat(service.loadAll()).containsExactlyInAnyOrder(pattern1, pattern2, pattern3);
+    }
+
+    @Test
+    public void bulkLoad() throws Exception {
+        GrokPattern pattern1 = service.save(GrokPattern.create("NAME1", ".*"));
+        GrokPattern pattern2 = service.save(GrokPattern.create("NAME2", ".*"));
+        GrokPattern pattern3 = service.save(GrokPattern.create("NAME3", ".*"));
+
+        assertThat(service.bulkLoad(ImmutableSet.of(pattern1.id(), pattern3.id()))).containsExactlyInAnyOrder(pattern1, pattern3);
     }
 
     @Test
@@ -78,10 +94,18 @@ public class InMemoryGrokPatternServiceTest {
 
         assertThat(loaded).isEqualTo(updated);
 
+        //check that using stored patterns works
+        final GrokPattern newPattern = service.save(GrokPattern.create("NEWONE", "%{OTHERNAME}"));
+
+        final GrokPattern newLoaded = service.load(newPattern.id());
+
+        assertThat(newLoaded).isEqualTo(newPattern);
+
+
         // save should validate
         try {
             service.save(GrokPattern.create("INVALID", "*"));
-            fail("Show throw ValidationException");
+            fail("Should throw ValidationException");
         } catch (ValidationException ignored) {
         }
     }
@@ -100,6 +124,22 @@ public class InMemoryGrokPatternServiceTest {
         // replaced all patterns
         service.saveAll(patterns, true);
         assertThat(service.loadAll()).hasSize(2);
+    }
+
+    @Test
+    public void validateAll() throws Exception {
+        Collection<GrokPattern> patternsRight = ImmutableList.of(GrokPattern.create("1", ".*"),
+                GrokPattern.create("2", ".+"));
+        final boolean result = service.validateAll(patternsRight);
+        assertThat(result).isTrue();
+
+        Collection<GrokPattern> patternsWrong = ImmutableList.of(GrokPattern.create("1", "***"),
+                GrokPattern.create("2", ".+"));
+        try {
+            service.validateAll(patternsWrong);
+            fail("Should throw ValidationException");
+        } catch (Exception ignored) {
+        }
     }
 
     @Test
@@ -130,4 +170,13 @@ public class InMemoryGrokPatternServiceTest {
         assertThat(service.loadAll()).isEmpty();
     }
 
+    @Test
+    public void match() throws Exception {
+        final String name = "IP";
+        final String sampleData = "1.2.3.4";
+        final Map<String, Object> expectedResult = Collections.singletonMap("IP", "1.2.3.4");
+        GrokPattern grokPattern = GrokPattern.create(name, "\\d.\\d.\\d.\\d");
+        final Map<String, Object> result = service.match(grokPattern, sampleData);
+        assertThat(result).isEqualTo(expectedResult);
+    }
 }

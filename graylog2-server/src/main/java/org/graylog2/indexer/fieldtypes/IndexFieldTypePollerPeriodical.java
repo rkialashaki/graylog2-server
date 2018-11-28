@@ -16,6 +16,7 @@
  */
 package org.graylog2.indexer.fieldtypes;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.google.common.primitives.Ints;
@@ -45,7 +46,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 
 /**
  * {@link Periodical} that creates and maintains index field type information in the database.
@@ -111,8 +111,7 @@ public class IndexFieldTypePollerPeriodical extends Periodical {
         indexSetService.findAll().forEach(indexSetConfig -> {
             final String indexSetId = indexSetConfig.id();
             final String indexSetTitle = indexSetConfig.title();
-            final Set<IndexFieldTypesDTO> existingIndexTypes = dbService.streamForIndexSet(indexSetId)
-                    .collect(Collectors.toSet());
+            final Set<IndexFieldTypesDTO> existingIndexTypes = ImmutableSet.copyOf(dbService.findForIndexSet(indexSetId));
 
             final IndexSet indexSet = mongoIndexSetFactory.create(indexSetConfig);
 
@@ -126,7 +125,7 @@ public class IndexFieldTypePollerPeriodical extends Periodical {
             }
 
             // Cleanup orphaned field type entries that haven't been removed by the event handler
-            dbService.streamForIndexSet(indexSetId)
+            dbService.findForIndexSet(indexSetId).stream()
                     .filter(types -> !indices.exists(types.indexName()))
                     .forEach(types -> dbService.delete(types.id()));
         });
@@ -210,7 +209,7 @@ public class IndexFieldTypePollerPeriodical extends Periodical {
             } catch (TooManyAliasesException e) {
                 LOG.error("Couldn't get active write index", e);
             } catch (Exception e) {
-                LOG.error("Couldn't update field types for index set <{}/{}>", indexSetTitle, indexSetId);
+                LOG.error("Couldn't update field types for index set <{}/{}>", indexSetTitle, indexSetId, e);
             }
         }, 0, refreshInterval.getMillis(), TimeUnit.MILLISECONDS);
 

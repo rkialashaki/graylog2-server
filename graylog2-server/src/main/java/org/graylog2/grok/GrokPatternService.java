@@ -16,15 +16,22 @@
  */
 package org.graylog2.grok;
 
+import io.krakens.grok.api.exception.GrokException;
 import org.graylog2.database.NotFoundException;
 import org.graylog2.plugin.database.ValidationException;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 public interface GrokPatternService {
     GrokPattern load(String patternId) throws NotFoundException;
+
+    Optional<GrokPattern> loadByName(String name);
+
+    Set<GrokPattern> bulkLoad(Collection<String> patternIds);
 
     Set<GrokPattern> loadAll();
 
@@ -32,7 +39,11 @@ public interface GrokPatternService {
 
     List<GrokPattern> saveAll(Collection<GrokPattern> patterns, boolean replace) throws ValidationException;
 
-    boolean validate(GrokPattern pattern);
+    Map<String, Object> match(GrokPattern pattern, String sampleData) throws GrokException;
+
+    boolean validate(GrokPattern pattern) throws GrokException;
+
+    boolean validateAll(Collection<GrokPattern> patterns) throws GrokException;
 
     int delete(String patternId);
 

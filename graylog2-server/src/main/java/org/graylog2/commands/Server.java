@@ -28,6 +28,7 @@ import org.graylog.plugins.cef.CEFInputModule;
 import org.graylog.plugins.map.MapWidgetModule;
 import org.graylog.plugins.netflow.NetFlowPluginModule;
 import org.graylog.plugins.pipelineprocessor.PipelineConfig;
+import org.graylog.plugins.sidecar.SidecarModule;
 import org.graylog2.Configuration;
 import org.graylog2.alerts.AlertConditionBindings;
 import org.graylog2.audit.AuditActor;
@@ -53,6 +54,7 @@ import org.graylog2.configuration.EmailConfiguration;
 import org.graylog2.configuration.HttpConfiguration;
 import org.graylog2.configuration.MongoDbConfiguration;
 import org.graylog2.configuration.VersionCheckConfiguration;
+import org.graylog2.contentpacks.ContentPacksModule;
 import org.graylog2.dashboards.DashboardBindings;
 import org.graylog2.decorators.DecoratorBindings;
 import org.graylog2.indexer.IndexerBindings;
@@ -142,7 +144,9 @@ public class Server extends ServerBootstrap {
             new MigrationsModule(),
             new NetFlowPluginModule(),
             new CEFInputModule(),
-            new MapWidgetModule()
+            new MapWidgetModule(),
+            new SidecarModule(),
+            new ContentPacksModule()
         );
 
         return modules.build();
